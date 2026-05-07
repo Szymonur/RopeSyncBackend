@@ -2,8 +2,12 @@
     "name": "ropesyncbackend",
     "version": "0.0.1",
     "description": "",
-    "main": "index.js",
+    "main": "index.ts",
+    "type": "module",
     "scripts": {
+        "dev": "nodemon --exec tsx index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "repository": {
@@ -17,7 +21,17 @@
     },
     "homepage": "https://github.com/Szymonur/RopeSyncBackend#readme",
     "dependencies": {
+        "dotenv": "^17.4.2",
         "express": "^5.2.1",
-        "nodemon": "^3.1.14"
+        "jsonwebtoken": "^9.0.3"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.6",
+        "@types/jsonwebtoken": "^9.0.10",
+        "@types/node": "^25.6.0",
+        "nodemon": "^3.1.14",
+        "ts-node": "^10.9.2",
+        "tsx": "^4.21.0",
+        "typescript": "^6.0.3"
     }
 }
