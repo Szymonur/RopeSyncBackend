@@ -10,6 +10,7 @@ import "dotenv/config";
 
 import login from "./routes/Login.js";
 import profile from "./routes/Profile.js";
+import register from "./routes/Register.js";
 
 const PORT = process.env.PORT;
 
@@ -29,6 +30,7 @@ const limiter = rateLimit({
     message: "Too many requests from your IP, try again later.",
 });
 app.use("/login", limiter);
+app.use("/register", limiter);
 
 app.use(express.json({ limit: "10kb" })); // size limit
 // // Security send
@@ -39,6 +41,7 @@ const certificate = fs.readFileSync("server.cert", "utf8");
 const credentials = { key: privateKey, cert: certificate };
 
 app.use("/login", login);
+app.use("/register", register);
 app.use("/profile", profile);
 
 // const httpsServer = https.createServer(credentials, app);

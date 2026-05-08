@@ -1,17 +1,11 @@
 import express, { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { User } from "../types/user.js";
+import { users } from "../utils/tmpDB.js";
 
 const router = express.Router();
 
 const JWT_EXPIRATION_TIME = "1h";
 const JWT_SECRET = process.env.JWT_SECRET as string;
-
-// Sample user database
-const users: User[] = [
-    { id: 1, username: "user1", password: "password1", role: "user" },
-    { id: 2, username: "1", password: "1", role: "user" },
-];
 
 // Login route - generate token
 router.post("/", (req: Request, res: Response) => {
