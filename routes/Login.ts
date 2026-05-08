@@ -10,12 +10,12 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 // Sample user database
 const users: User[] = [
     { id: 1, username: "user1", password: "password1", role: "user" },
+    { id: 2, username: "1", password: "1", role: "user" },
 ];
 
 // Login route - generate token
 router.post("/", (req: Request, res: Response) => {
     const { username, password } = req.body;
-
     // Find user
     const user = users.find(
         (u) => u.username === username && u.password === password,
