@@ -11,6 +11,7 @@ import "dotenv/config";
 import login from "./routes/Login.js";
 import profile from "./routes/Profile.js";
 import register from "./routes/Register.js";
+import refresh from "./routes/Refresh.js";
 
 const PORT = process.env.PORT;
 
@@ -43,6 +44,7 @@ const credentials = { key: privateKey, cert: certificate };
 app.use("/login", login);
 app.use("/register", register);
 app.use("/profile", profile);
+app.use("/refresh", refresh);
 
 // const httpsServer = https.createServer(credentials, app);
 

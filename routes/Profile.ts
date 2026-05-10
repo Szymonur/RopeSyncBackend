@@ -1,9 +1,9 @@
 import express, { Request, Response } from "express";
-import authenticateJWT from "../utils/authenticateJWT.js";
+import authenticateAccesJWT from "../utils/authenticateJWT.js";
 
 const router = express.Router();
 
-router.get("/", authenticateJWT, (req: Request, res: Response) => {
+router.get("/", authenticateAccesJWT, (req: Request, res: Response) => {
     res.json({ message: "Profile accessed", user: req.user });
 });
 
