@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Register route
 router.post("/", (req: Request, res: Response) => {
-    const { username, password } = req.body;
+    const { username, password, firstName, lastName, email } = req.body;
 
     if (!username || !password) {
         return res
@@ -24,6 +24,9 @@ router.post("/", (req: Request, res: Response) => {
     const newUser: User = {
         id: users.length + 1,
         username,
+        firstName,
+        lastName,
+        email,
         password,
         role: "user",
     };
