@@ -11,7 +11,7 @@ export const users: User[] = [
         email: "example@gmail.com",
     },
     {
-        id: 2,
+        id: 5,
         username: "admin",
         password: "admin",
         role: "admin",
@@ -27,6 +27,15 @@ export const users: User[] = [
         lastName: "Nazwisko",
         firstName: "Imie",
         email: "example@gmail.com",
+    },
+    {
+        id: 2,
+        username: "taterniczka",
+        password: "1",
+        role: "user",
+        lastName: "Nowak",
+        firstName: "Anna",
+        email: "ania.tatry@gory.com",
     },
 ];
 
