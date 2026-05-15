@@ -1,34 +1,82 @@
 import express, { Request, Response } from "express";
 import authenticateAccesJWT from "../utils/authenticateJWT.js";
-import { users } from "../utils/tmpDB.js";
+import { query } from "../db/db.js";
 
 const router = express.Router();
 
-router.get("/", authenticateAccesJWT, (req: Request, res: Response) => {
-    const userId = (req.user as any).id;
-    const user = users.find((u) => u.id === userId);
+// Pobierz profil zalogowanego użytkownika
+router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
+    try {
+        const userId = (req.user as any).id;
 
-    if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        const result = await query(
+            "SELECT id_uzytkownika, login, email, imie, nazwisko FROM Uzytkownicy WHERE id_uzytkownika = $1",
+            [userId],
+        );
+
+        const user = result.rows[0];
+
+        if (!user) {
+            return res
+                .status(404)
+                .json({ message: "Użytkownik nie znaleziony" });
+        }
+
+        res.json({
+            message: "Profil pobrany pomyślnie",
+            user: {
+                id: user.id_uzytkownika,
+                username: user.login,
+                email: user.email,
+                firstName: user.imie,
+                lastName: user.nazwisko,
+            },
+        });
+    } catch (error) {
+        console.error("Profile error:", error);
+        res.status(500).json({
+            message: "Błąd serwera podczas pobierania profilu",
+        });
     }
-
-    // Opcjonalnie: usuwamy hasło z obiektu przed wysłaniem
-    const { password, ...userWithoutPassword } = user;
-
-    res.json({ message: "Profile accessed", user: userWithoutPassword });
 });
 
-router.get("/:id", authenticateAccesJWT, (req: Request, res: Response) => {
-    const userId = parseInt(req.params.id as string);
-    const user = users.find((u) => u.id === userId);
+// Pobierz profil konkretnego użytkownika po ID
+router.get(
+    "/:id",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        try {
+            const userId = req.params.id;
 
-    if (!user) {
-        return res.status(404).json({ message: "User not found" });
-    }
+            const result = await query(
+                "SELECT id_uzytkownika, login, imie, nazwisko FROM Uzytkownicy WHERE id_uzytkownika = $1",
+                [userId],
+            );
 
-    const { password, ...userWithoutPassword } = user;
+            const user = result.rows[0];
 
-    res.json({ message: "Profile accessed", user: userWithoutPassword });
-});
+            if (!user) {
+                return res
+                    .status(404)
+                    .json({ message: "Użytkownik nie znaleziony" });
+            }
+
+            res.json({
+                message: "Profil użytkownika pobrany",
+                user: {
+                    id: user.id_uzytkownika,
+                    username: user.login,
+                    firstName: user.imie,
+                    lastName: user.nazwisko,
+                },
+            });
+        } catch (error) {
+            console.error("Get user error:", error);
+            res.status(500).json({
+                message: "Błąd serwera podczas pobierania danych użytkownika",
+            });
+        }
+    },
+);
 
 export default router;
