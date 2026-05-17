@@ -15,10 +15,7 @@ interface JwtPayload {
 }
 
 router.post("/", (req: Request, res: Response) => {
-    console.log("refresh");
-
     const { refreshToken } = req.body;
-    console.log("refreshToken: ", refreshToken);
 
     if (!refreshToken) {
         return res.status(401).json({ message: "Brak Refresh Tokena" });
@@ -37,7 +34,6 @@ router.post("/", (req: Request, res: Response) => {
         const newPayload = {
             id: userPayload.id,
             username: userPayload.username,
-            role: userPayload.role,
         };
 
         const newAccessToken = jwt.sign(newPayload, JWT_ACCESS_SECRET, {

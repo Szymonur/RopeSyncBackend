@@ -12,5 +12,4 @@ export interface User {
 export interface JwtPayload {
     id: number;
     username: string;
-    role: string;
 }

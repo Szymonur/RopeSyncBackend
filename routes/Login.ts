@@ -25,7 +25,6 @@ router.post("/", async (req: Request, res: Response) => {
         const payload = {
             id: user.id,
             username: user.username,
-            role: user.role,
         };
 
         const accesToken = jwt.sign(payload, JWT_ACCESS_SECRET, {

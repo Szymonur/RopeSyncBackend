@@ -67,7 +67,5 @@ export const authenticateUser = async (login: string, password: string) => {
     return {
         id: user.id_uzytkownika,
         username: user.login,
-        // Tutaj możesz dodać rolę, jeśli dodasz ją do tabeli Uzytkownicy
-        role: "user",
     };
 };
