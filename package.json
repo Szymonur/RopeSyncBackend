@@ -8,7 +8,8 @@
         "dev": "nodemon --exec tsx index.ts",
         "build": "tsc",
         "start": "node dist/index.js",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "db:init": "tsx db/initDb.ts"
     },
     "repository": {
         "type": "git",
@@ -21,6 +22,7 @@
     },
     "homepage": "https://github.com/Szymonur/RopeSyncBackend#readme",
     "dependencies": {
+        "argon2": "^0.44.0",
         "cors": "^2.8.6",
         "dotenv": "^17.4.2",
         "express": "^5.2.1",
@@ -29,6 +31,7 @@
         "helmet": "^8.1.0",
         "hpp": "^0.2.3",
         "jsonwebtoken": "^9.0.3",
+        "pg": "^8.20.0",
         "xss-clean": "^0.1.4"
     },
     "devDependencies": {
@@ -37,6 +40,7 @@
         "@types/hpp": "^0.2.7",
         "@types/jsonwebtoken": "^9.0.10",
         "@types/node": "^25.6.0",
+        "@types/pg": "^8.20.0",
         "nodemon": "^3.1.14",
         "ts-node": "^10.9.2",
         "tsx": "^4.21.0",

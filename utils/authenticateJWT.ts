@@ -2,9 +2,13 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { JwtPayload } from "../types/user.js";
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET as string;
 
-const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
+export const authenticateAccesJWT = (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
     // Get auth header - The Authorization header is commonly used to send authentication tokens
     const authHeader = req.headers.authorization;
 
@@ -23,7 +27,7 @@ const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
 
     try {
         // Verify token
-        const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+        const decoded = jwt.verify(token, JWT_ACCESS_SECRET) as JwtPayload;
 
         // Attach user to request
         req.user = decoded;
@@ -34,4 +38,4 @@ const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
-export default authenticateJWT;
+export default authenticateAccesJWT;
