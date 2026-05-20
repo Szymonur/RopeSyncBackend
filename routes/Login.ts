@@ -41,6 +41,7 @@ router.post("/", async (req: Request, res: Response) => {
             message: "Logowanie pomyślne",
             accesToken,
             refreshToken,
+            id: user.id,
         });
     } catch (error: any) {
         console.log(`LOGIN ERROR: ${error.message}`);
