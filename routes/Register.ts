@@ -31,11 +31,13 @@ router.post("/", async (req: Request, res: Response) => {
         switch (error.message) {
             case "USER_ALREADY_EXISTS":
                 return res.status(409).json({
-                    message: "Użytkownik o takim loginie już istnieje",
+                    message:
+                        "USER_ALREADY_EXISTS: Użytkownik o takim loginie już istnieje",
                 });
             case "EMAIL_ALREADY_EXISTS":
                 return res.status(409).json({
-                    message: "Użytkownik o takim adresie e-mail już istnieje",
+                    message:
+                        "EMAIL_ALREADY_EXISTS: Użytkownik o takim adresie e-mail już istnieje",
                 });
             case "INVALID_PASSWORD_LENGTH":
                 return res
