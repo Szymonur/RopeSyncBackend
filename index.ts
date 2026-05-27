@@ -13,6 +13,9 @@ import profile from "./routes/Profile.js";
 import register from "./routes/Register.js";
 import refresh from "./routes/Refresh.js";
 import restartPassword from "./routes/RestartPassword.js";
+import follow from "./routes/Follow.js";
+import unfollow from "./routes/Unfollow.js";
+import ascents from "./routes/Ascents.js";
 
 const PORT = process.env.PORT;
 
@@ -47,6 +50,9 @@ app.use("/register", register);
 app.use("/profile", profile);
 app.use("/refresh", refresh);
 app.use("/restart-password", restartPassword);
+app.use("/follow", follow);
+app.use("/unfollow", unfollow);
+app.use("/ascents", ascents);
 
 // const httpsServer = https.createServer(credentials, app);
 
