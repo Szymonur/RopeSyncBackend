@@ -170,6 +170,18 @@ CREATE TABLE Pomiary_wyciagow (
     FOREIGN KEY (id_przejscia) REFERENCES Przejscia(id_przejscia) ON DELETE CASCADE
 );
 
+CREATE TABLE Tokeny_resetu (
+    token TEXT PRIMARY KEY,
+    id_uzytkownika INT NOT NULL,
+    utworzono TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    wygasa TIMESTAMP NOT NULL,
+    
+    CONSTRAINT fk_uzytkownik 
+        FOREIGN KEY (id_uzytkownika) 
+        REFERENCES Uzytkownicy(id_uzytkownika) 
+        ON DELETE CASCADE
+);
+
 CREATE INDEX idx_sektory_rejon ON Sektory(id_rejonu);
 CREATE INDEX idx_skaly_sektor ON Skaly(id_sektoru);
 CREATE INDEX idx_skaly_materia ON Skaly(materia);

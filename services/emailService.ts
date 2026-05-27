@@ -51,7 +51,7 @@ export const sendResetPasswordEmail = async (
         text: `Otrzymaliśmy prośbę o zresetowanie hasła. Kliknij w poniższy link, aby ustawić nowe hasło: ${resetUrl}`,
         html: `<div style="font-family: sans-serif; max-width: 600px; margin: auto;">
                 <h2>Resetowanie hasła</h2>
-                <p>Witaj, otrzymałeś tę wiadomość, ponieważ poprosiłeś o zresetowanie hasła w aplikacji RopeSync.</p>
+                <p>Otrzymałeś tę wiadomość, ponieważ poprosiłeś o zresetowanie hasła w aplikacji RopeSync.</p>
                 <p>Kliknij w poniższy przycisk, aby ustawić nowe hasło:</p>
                 <a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Zresetuj hasło</a>
                 <p style="margin-top: 20px; font-size: 0.8em; color: #666;">Jeśli to nie Ty prosiłeś o reset, zignoruj tę wiadomość.</p>

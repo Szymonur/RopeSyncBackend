@@ -43,6 +43,34 @@ export const registerUser = async (userData: {
     }
 };
 
+export const resetUserPassword = async (token: string, newPassword: string) => {
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const result = await query(
+        "SELECT id_uzytkownika, wygasa, token FROM tokeny_resetu WHERE token = $1",
+        [hashedToken],
+    );
+    await query("DELETE FROM tokeny_resetu WHERE token= $1", [hashedToken]);
+
+    const data = result.rows[0];
+    if (!data) {
+        throw new Error("INVALID_TOKEN");
+    }
+    if (Date.now() > data.wygasa) {
+        throw new Error("EXPIRED_TOKEN");
+    }
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hashedPassword = await argon2.hash(newPassword + salt, {
+        type: argon2.argon2id,
+    });
+    const updateResult = await query(
+        "UPDATE Uzytkownicy SET haslo = $1, sol = $2 WHERE id_uzytkownika = $3",
+        [hashedPassword, salt, data.id_uzytkownika],
+    );
+    if (updateResult.rowCount === 0) {
+        throw new Error("FAILED_UPDATE_USER_PASSWORD");
+    }
+};
+
 export const authenticateUser = async (login: string, password: string) => {
     const result = await query(
         "SELECT id_uzytkownika, login, haslo, sol FROM Uzytkownicy WHERE login = $1",
