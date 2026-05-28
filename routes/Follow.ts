@@ -15,134 +15,178 @@ const getSingleParamValue = (value: string | string[] | undefined) => {
     return value;
 };
 
-router.post("/:userId", authenticateAccesJWT, async (req: Request, res: Response) => {
-    const followerId = (req.user as any).id;
-    const followedId = parseUserIdParam(getSingleParamValue(req.params.userId));
-
-    if (!followedId) {
-        return res.status(400).json({ message: "Nieprawidłowe ID użytkownika" });
-    }
-
-    if (Number(followerId) === followedId) {
-        return res.status(400).json({ message: "Nie można obserwować samego siebie" });
-    }
-
-    try {
-        const userExists = await query(
-            "SELECT 1 FROM Uzytkownicy WHERE id_uzytkownika = $1",
-            [followedId],
+router.post(
+    "/:userId",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        const followerId = (req.user as any).id;
+        const followedId = parseUserIdParam(
+            getSingleParamValue(req.params.userId),
         );
 
-        if ((userExists.rowCount ?? 0) === 0) {
-            return res.status(404).json({ message: "Użytkownik do obserwowania nie istnieje" });
+        if (!followedId) {
+            return res
+                .status(400)
+                .json({ message: "Nieprawidłowe ID użytkownika" });
         }
 
-        await query(
-            "INSERT INTO Obserwacje (id_obserwujacego, id_obserwowanego) VALUES ($1, $2)",
-            [followerId, followedId],
-        );
-
-        return res.status(201).json({ message: "Użytkownik został zaobserwowany" });
-    } catch (error: any) {
-        if (error.code === "23505") {
-            return res.status(409).json({ message: "Już obserwujesz tego użytkownika" });
+        if (Number(followerId) === followedId) {
+            return res
+                .status(400)
+                .json({ message: "Nie można obserwować samego siebie" });
         }
 
-        console.error("Follow error:", error);
-        return res.status(500).json({ message: "Błąd serwera podczas obserwowania" });
-    }
-});
+        try {
+            const userExists = await query(
+                "SELECT 1 FROM Uzytkownicy WHERE id_uzytkownika = $1",
+                [followedId],
+            );
 
-router.get("/status/:userId", authenticateAccesJWT, async (req: Request, res: Response) => {
-    const followerId = (req.user as any).id;
-    const followedId = parseUserIdParam(getSingleParamValue(req.params.userId));
+            if ((userExists.rowCount ?? 0) === 0) {
+                return res.status(404).json({
+                    message: "Użytkownik do obserwowania nie istnieje",
+                });
+            }
 
-    if (!followedId) {
-        return res.status(400).json({ message: "Nieprawidłowe ID użytkownika" });
-    }
+            await query(
+                "INSERT INTO Obserwacje (id_obserwujacego, id_obserwowanego) VALUES ($1, $2)",
+                [followerId, followedId],
+            );
 
-    try {
-        const result = await query(
-            "SELECT 1 FROM Obserwacje WHERE id_obserwujacego = $1 AND id_obserwowanego = $2",
-            [followerId, followedId],
+            return res
+                .status(201)
+                .json({ message: "Użytkownik został zaobserwowany" });
+        } catch (error: any) {
+            if (error.code === "23505") {
+                return res
+                    .status(409)
+                    .json({ message: "Już obserwujesz tego użytkownika" });
+            }
+
+            console.error("Follow error:", error);
+            return res
+                .status(500)
+                .json({ message: "Błąd serwera podczas obserwowania" });
+        }
+    },
+);
+
+router.get(
+    "/status/:userId",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        const followerId = (req.user as any).id;
+        const followedId = parseUserIdParam(
+            getSingleParamValue(req.params.userId),
         );
 
-        return res.json({
-            isFollowing: (result.rowCount ?? 0) > 0,
-        });
-    } catch (error) {
-        console.error("Follow status error:", error);
-        return res.status(500).json({ message: "Błąd serwera podczas pobierania statusu obserwacji" });
-    }
-});
+        if (!followedId) {
+            return res
+                .status(400)
+                .json({ message: "Nieprawidłowe ID użytkownika" });
+        }
 
-router.get("/me/following", authenticateAccesJWT, async (req: Request, res: Response) => {
-    const userId = (req.user as any).id;
+        try {
+            const result = await query(
+                "SELECT 1 FROM Obserwacje WHERE id_obserwujacego = $1 AND id_obserwowanego = $2",
+                [followerId, followedId],
+            );
 
-    try {
-        const result = await query(
-            `SELECT u.id_uzytkownika, u.login, u.imie, u.nazwisko, o.data_rozpoczecia
+            return res.json({
+                isFollowing: (result.rowCount ?? 0) > 0,
+            });
+        } catch (error) {
+            console.error("Follow status error:", error);
+            return res.status(500).json({
+                message: "Błąd serwera podczas pobierania statusu obserwacji",
+            });
+        }
+    },
+);
+
+router.get(
+    "/me/following",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        const userId = (req.user as any).id;
+
+        try {
+            const result = await query(
+                `SELECT u.id_uzytkownika, u.login, u.imie, u.nazwisko, o.data_rozpoczecia
              FROM Obserwacje o
              JOIN Uzytkownicy u ON u.id_uzytkownika = o.id_obserwowanego
              WHERE o.id_obserwujacego = $1
              ORDER BY o.data_rozpoczecia DESC`,
-            [userId],
-        );
+                [userId],
+            );
 
-        return res.json({
-            message: "Pobrano listę obserwowanych",
-            count: result.rowCount ?? 0,
-            users: result.rows.map((row) => ({
-                id: row.id_uzytkownika,
-                username: row.login,
-                firstName: row.imie,
-                lastName: row.nazwisko,
-                followedAt: row.data_rozpoczecia,
-            })),
-        });
-    } catch (error) {
-        console.error("Following list error:", error);
-        return res.status(500).json({ message: "Błąd serwera podczas pobierania obserwowanych" });
-    }
-});
+            return res.json({
+                message: "Pobrano listę obserwowanych",
+                count: result.rowCount ?? 0,
+                users: result.rows.map((row) => ({
+                    id: row.id_uzytkownika,
+                    username: row.login,
+                    firstName: row.imie,
+                    lastName: row.nazwisko,
+                    followedAt: row.data_rozpoczecia,
+                })),
+            });
+        } catch (error) {
+            console.error("Following list error:", error);
+            return res.status(500).json({
+                message: "Błąd serwera podczas pobierania obserwowanych",
+            });
+        }
+    },
+);
 
-router.get("/me/followers", authenticateAccesJWT, async (req: Request, res: Response) => {
-    const userId = (req.user as any).id;
+router.get(
+    "/me/followers",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        const userId = (req.user as any).id;
 
-    try {
-        const result = await query(
-            `SELECT u.id_uzytkownika, u.login, u.imie, u.nazwisko, o.data_rozpoczecia
+        try {
+            const result = await query(
+                `SELECT u.id_uzytkownika, u.login, u.imie, u.nazwisko, o.data_rozpoczecia
              FROM Obserwacje o
              JOIN Uzytkownicy u ON u.id_uzytkownika = o.id_obserwujacego
              WHERE o.id_obserwowanego = $1
              ORDER BY o.data_rozpoczecia DESC`,
-            [userId],
-        );
+                [userId],
+            );
 
-        return res.json({
-            message: "Pobrano listę obserwujących",
-            count: result.rowCount ?? 0,
-            users: result.rows.map((row) => ({
-                id: row.id_uzytkownika,
-                username: row.login,
-                firstName: row.imie,
-                lastName: row.nazwisko,
-                followedAt: row.data_rozpoczecia,
-            })),
-        });
-    } catch (error) {
-        console.error("Followers list error:", error);
-        return res.status(500).json({ message: "Błąd serwera podczas pobierania obserwujących" });
-    }
-});
+            return res.json({
+                message: "Pobrano listę obserwujących",
+                count: result.rowCount ?? 0,
+                users: result.rows.map((row) => ({
+                    id: row.id_uzytkownika,
+                    username: row.login,
+                    firstName: row.imie,
+                    lastName: row.nazwisko,
+                    followedAt: row.data_rozpoczecia,
+                })),
+            });
+        } catch (error) {
+            console.error("Followers list error:", error);
+            return res.status(500).json({
+                message: "Błąd serwera podczas pobierania obserwujących",
+            });
+        }
+    },
+);
 
-router.get("/me/feed", authenticateAccesJWT, async (req: Request, res: Response) => {
-    const userId = (req.user as any).id;
+router.get(
+    "/me/feed",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        const userId = (req.user as any).id;
 
-    try {
-        const result = await query(
-            `SELECT
+        try {
+            const result = await query(
+                `SELECT
                 p.id_przejscia,
+				p.notatka,
                 p.data,
                 p.nazwa_stylu,
                 d.id_drogi,
@@ -163,30 +207,34 @@ router.get("/me/feed", authenticateAccesJWT, async (req: Request, res: Response)
              WHERE o.id_obserwujacego = $1
              ORDER BY p.data DESC, p.id_przejscia DESC
              LIMIT 50`,
-            [userId],
-        );
+                [userId],
+            );
 
-        return res.json({
-            message: "Pobrano feed obserwowanych",
-            count: result.rowCount ?? 0,
-            feed: result.rows.map((row) => ({
-                ascentId: row.id_przejscia,
-                date: row.data,
-                style: row.nazwa_stylu,
-                routeId: row.id_drogi,
-                routeName: row.nazwa_drogi,
-                routeType: row.typ_drogi,
-                grade: row.wycena,
-                userId: row.id_uzytkownika,
-                username: row.login,
-                firstName: row.imie,
-                lastName: row.nazwisko,
-            })),
-        });
-    } catch (error) {
-        console.error("Following feed error:", error);
-        return res.status(500).json({ message: "Błąd serwera podczas pobierania feedu" });
-    }
-});
+            return res.json({
+                message: "Pobrano feed obserwowanych",
+                count: result.rowCount ?? 0,
+                feed: result.rows.map((row) => ({
+                    ascentId: row.id_przejscia,
+                    date: row.data,
+                    style: row.nazwa_stylu,
+                    routeId: row.id_drogi,
+                    routeName: row.nazwa_drogi,
+                    routeType: row.typ_drogi,
+                    note: row.notatka,
+                    grade: row.wycena,
+                    userId: row.id_uzytkownika,
+                    username: row.login,
+                    firstName: row.imie,
+                    lastName: row.nazwisko,
+                })),
+            });
+        } catch (error) {
+            console.error("Following feed error:", error);
+            return res
+                .status(500)
+                .json({ message: "Błąd serwera podczas pobierania feedu" });
+        }
+    },
+);
 
 export default router;
