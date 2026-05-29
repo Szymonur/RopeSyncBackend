@@ -73,7 +73,7 @@ export const resetUserPassword = async (token: string, newPassword: string) => {
 
 export const authenticateUser = async (login: string, password: string) => {
     const result = await query(
-        "SELECT id_uzytkownika, login, haslo, sol FROM Uzytkownicy WHERE login = $1",
+        "SELECT id_uzytkownika, login, haslo, sol FROM Uzytkownicy WHERE login = $1 OR email = $1",
         [login],
     );
 
