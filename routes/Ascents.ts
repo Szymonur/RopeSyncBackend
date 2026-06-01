@@ -122,6 +122,55 @@ router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     }
 });
 
+router.get(
+    "/:ascentId",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        const { ascentId } = req.params;
+
+        try {
+            const result = await query(
+                `SELECT 
+                    p.id_przejscia, 
+                    p.data, 
+                    p.notatka, 
+                    p.timeline_data, 
+                    p.id_uzytkownika, 
+                    p.nazwa_stylu, 
+                    p.id_drogi,
+                    d.nazwa_drogi,
+                    d.typ_drogi,
+                    COALESCE(ds.skala_linowa, dt.skala_linowa, db.skala_boulderowa) AS wycena,
+                    u.imie,
+                    u.nazwisko,
+                    u.login AS username
+                FROM Przejscia p
+                LEFT JOIN Drogi d ON p.id_drogi = d.id_drogi
+                LEFT JOIN Drogi_sportowe_szczegoly ds ON ds.id_drogi = d.id_drogi AND d.typ_drogi = 'sportowa'
+                LEFT JOIN Trady_szczegoly dt ON dt.id_drogi = d.id_drogi AND d.typ_drogi = 'trad'
+                LEFT JOIN Bouldery_szczegoly db ON db.id_drogi = d.id_drogi AND d.typ_drogi = 'boulder'
+                LEFT JOIN Uzytkownicy u ON p.id_uzytkownika = u.id_uzytkownika
+                WHERE p.id_przejscia = $1`,
+                [ascentId],
+            );
+
+            if ((result.rowCount ?? 0) === 0) {
+                return res.status(404).json({ message: "Nie znaleziono przejścia" });
+            }
+
+            return res.json({
+                message: "Pobrano dane przejścia",
+                ascent: result.rows[0],
+            });
+        } catch (error) {
+            console.error("Get ascent details error:", error);
+            return res
+                .status(500)
+                .json({ message: "Błąd serwera podczas pobierania szczegółów przejścia" });
+        }
+    },
+);
+
 router.delete(
     "/:ascentId",
     authenticateAccesJWT,
