@@ -42,6 +42,10 @@ router.post("/", async (req: Request, res: Response) => {
             accesToken,
             refreshToken,
             id: user.id,
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
         });
     } catch (error: any) {
         console.log(`LOGIN ERROR: ${error.message}`);
