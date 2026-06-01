@@ -31,6 +31,50 @@ router.get("/routes", authenticateAccesJWT, async (_req: Request, res: Response)
     }
 });
 
+router.get("/me", authenticateAccesJWT, async (req: Request, res: Response) => {
+    const userId = Number((req.user as any)?.id);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+        return res.status(401).json({ message: "Nieprawidłowy użytkownik" });
+    }
+
+    try {
+        const result = await query(
+            `SELECT
+                p.id_przejscia,
+                p.data,
+                p.notatka,
+                p.uri_timeline,
+                p.id_uzytkownika,
+                p.nazwa_stylu,
+                p.id_drogi,
+                d.nazwa_drogi,
+                d.typ_drogi,
+                COALESCE(
+                    ds.skala_linowa,
+                    dt.skala_linowa,
+                    db.skala_boulderowa
+                ) AS wycena
+             FROM Przejscia p
+             LEFT JOIN Drogi d ON p.id_drogi = d.id_drogi
+             LEFT JOIN Drogi_sportowe_szczegoly ds ON ds.id_drogi = d.id_drogi AND d.typ_drogi = 'sportowa'
+             LEFT JOIN Trady_szczegoly dt ON dt.id_drogi = d.id_drogi AND d.typ_drogi = 'trad'
+             LEFT JOIN Bouldery_szczegoly db ON db.id_drogi = d.id_drogi AND d.typ_drogi = 'boulder'
+             WHERE p.id_uzytkownika = $1
+             ORDER BY p.data DESC, p.id_przejscia DESC`,
+            [userId],
+        );
+
+        return res.json({
+            message: "Pobrano przejścia użytkownika",
+            ascents: result.rows,
+        });
+    } catch (error) {
+        console.error("Get my ascents error:", error);
+        return res.status(500).json({ message: "Błąd serwera podczas pobierania przejść" });
+    }
+});
+
 router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     const userId = Number((req.user as any)?.id);
     const { data, id_drogi, notatka, nazwa_stylu } = req.body ?? {};
