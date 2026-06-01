@@ -39,7 +39,7 @@ router.get(
 
 router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     const userId = Number((req.user as any)?.id);
-    const { data, id_drogi, notatka, nazwa_stylu } = req.body ?? {};
+    const { data, id_drogi, notatka, nazwa_stylu, id } = req.body ?? {};
 
     if (!Number.isInteger(userId) || userId <= 0) {
         return res.status(401).json({ message: "Nieprawidłowy użytkownik" });
@@ -64,8 +64,6 @@ router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
             ? nazwa_stylu.trim()
             : "RP";
 
-    const ascentId = `srv_${Date.now()}_${userId}`;
-
     try {
         const routeExists = await query(
             "SELECT 1 FROM Drogi WHERE id_drogi = $1",
@@ -89,15 +87,7 @@ router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
                 nazwa_stylu,
                 id_drogi
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                [
-                    ascentId,
-                    data,
-                    notatka ?? null,
-                    null,
-                    userId,
-                    style,
-                    id_drogi,
-                ],
+                [id, data, notatka ?? null, null, userId, style, id_drogi],
             );
         } catch (e) {
             console.log(e);
@@ -106,7 +96,7 @@ router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
         return res.status(201).json({
             message: "Przejście zapisane",
             ascent: {
-                id_przejscia: ascentId,
+                id_przejscia: id,
                 data,
                 id_drogi,
                 notatka: notatka ?? null,
@@ -121,5 +111,44 @@ router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
             .json({ message: "Błąd serwera podczas zapisu przejścia" });
     }
 });
+
+router.delete(
+    "/:ascentId",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        const userId = Number((req.user as any)?.id);
+        const { ascentId } = req.params;
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            return res
+                .status(401)
+                .json({ message: "Nieprawidłowy użytkownik" });
+        }
+
+        if (!ascentId) {
+            return res.status(400).json({ message: "Brak id przejścia" });
+        }
+
+        try {
+            const result = await query(
+                "DELETE FROM Przejscia WHERE id_przejscia = $1 AND id_uzytkownika = $2",
+                [ascentId, userId],
+            );
+
+            if ((result.rowCount ?? 0) === 0) {
+                return res.status(404).json({
+                    message: "Nie znaleziono przejścia lub brak uprawnień",
+                });
+            }
+
+            return res.json({ message: "Przejście usunięte" });
+        } catch (error) {
+            console.error("Delete ascent error:", error);
+            return res
+                .status(500)
+                .json({ message: "Błąd serwera podczas usuwania przejścia" });
+        }
+    },
+);
 
 export default router;
