@@ -138,7 +138,7 @@ CREATE TABLE Style_przejscia (
 CREATE TABLE Przejscia (
     id_przejscia TEXT PRIMARY KEY,
     data DATE DEFAULT CURRENT_DATE,
-    uri_timeline TEXT,
+    timeline_data JSONB,
     notatka TEXT,
     id_uzytkownika INTEGER NOT NULL,
     nazwa_stylu TEXT NOT NULL,

@@ -39,7 +39,8 @@ router.get(
 
 router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     const userId = Number((req.user as any)?.id);
-    const { data, id_drogi, notatka, nazwa_stylu, id } = req.body ?? {};
+    const { data, id_drogi, timeline_data, notatka, nazwa_stylu, id } =
+        req.body ?? {};
 
     if (!Number.isInteger(userId) || userId <= 0) {
         return res.status(401).json({ message: "Nieprawidłowy użytkownik" });
@@ -82,12 +83,20 @@ router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
                 id_przejscia,
                 data,
                 notatka,
-                uri_timeline,
+                timeline_data,
                 id_uzytkownika,
                 nazwa_stylu,
                 id_drogi
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                [id, data, notatka ?? null, null, userId, style, id_drogi],
+                [
+                    id,
+                    data,
+                    notatka ?? null,
+                    timeline_data,
+                    userId,
+                    style,
+                    id_drogi,
+                ],
             );
         } catch (e) {
             console.log(e);
@@ -100,6 +109,7 @@ router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
                 data,
                 id_drogi,
                 notatka: notatka ?? null,
+                timeline_data,
                 nazwa_stylu: style,
                 id_uzytkownika: userId,
             },
