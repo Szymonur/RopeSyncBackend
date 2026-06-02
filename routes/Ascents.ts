@@ -210,4 +210,88 @@ router.delete(
     },
 );
 
+router.post(
+    "/:ascentId/react",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        const userId = Number((req.user as any)?.id);
+        const { ascentId } = req.params;
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            return res.status(401).json({ message: "Nieprawidłowy użytkownik" });
+        }
+
+        try {
+            const ascentExists = await query(
+                "SELECT 1 FROM Przejscia WHERE id_przejscia = $1",
+                [ascentId],
+            );
+
+            if ((ascentExists.rowCount ?? 0) === 0) {
+                return res
+                    .status(404)
+                    .json({ message: "Nie znaleziono przejścia" });
+            }
+
+            const checkResult = await query(
+                "SELECT 1 FROM Reakcje WHERE id_uzytkownika = $1 AND id_przejscia = $2",
+                [userId, ascentId],
+            );
+
+            if ((checkResult.rowCount ?? 0) > 0) {
+                await query(
+                    "DELETE FROM Reakcje WHERE id_uzytkownika = $1 AND id_przejscia = $2",
+                    [userId, ascentId],
+                );
+                return res.json({
+                    message: "Reakcja usunięta",
+                    reacted: false,
+                });
+            } else {
+                await query(
+                    "INSERT INTO Reakcje (id_uzytkownika, id_przejscia) VALUES ($1, $2)",
+                    [userId, ascentId],
+                );
+                return res.json({ message: "Reakcja dodana", reacted: true });
+            }
+        } catch (error) {
+            console.error("React error:", error);
+            return res
+                .status(500)
+                .json({ message: "Błąd serwera podczas obsługi reakcji" });
+        }
+    },
+);
+
+router.get(
+    "/:ascentId/reactions",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        const userId = Number((req.user as any)?.id);
+        const { ascentId } = req.params;
+
+        try {
+            const countResult = await query(
+                "SELECT COUNT(*) as count FROM Reakcje WHERE id_przejscia = $1",
+                [ascentId],
+            );
+
+            const userReactedResult = await query(
+                "SELECT 1 FROM Reakcje WHERE id_uzytkownika = $1 AND id_przejscia = $2",
+                [userId, ascentId],
+            );
+
+            return res.json({
+                count: parseInt(countResult.rows[0].count),
+                userReacted: (userReactedResult.rowCount ?? 0) > 0,
+            });
+        } catch (error) {
+            console.error("Get reactions error:", error);
+            return res
+                .status(500)
+                .json({ message: "Błąd serwera podczas pobierania reakcji" });
+        }
+    },
+);
+
 export default router;

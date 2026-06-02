@@ -151,6 +151,8 @@ CREATE TABLE Przejscia (
 CREATE TABLE Reakcje (
     id_uzytkownika INTEGER NOT NULL,
     id_przejscia TEXT NOT NULL,
+    wyswietlono INTEGER DEFAULT 0,
+    utworzono TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id_uzytkownika, id_przejscia),
     FOREIGN KEY (id_uzytkownika) REFERENCES Uzytkownicy(id_uzytkownika) ON DELETE CASCADE,
     FOREIGN KEY (id_przejscia) REFERENCES Przejscia(id_przejscia) ON DELETE CASCADE

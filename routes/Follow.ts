@@ -186,7 +186,7 @@ router.get(
             const result = await query(
                 `SELECT
                 p.id_przejscia,
-				p.notatka,
+                p.notatka,
                 p.data,
                 p.nazwa_stylu,
                 d.id_drogi,
@@ -196,7 +196,11 @@ router.get(
                 u.login,
                 u.imie,
                 u.nazwisko,
-                COALESCE(ds.skala_linowa, dt.skala_linowa, db.skala_boulderowa) AS wycena
+                COALESCE(ds.skala_linowa, dt.skala_linowa, db.skala_boulderowa) AS wycena,
+                EXISTS (
+                    SELECT 1 FROM Reakcje r 
+                    WHERE r.id_przejscia = p.id_przejscia AND r.id_uzytkownika = $1
+                ) AS "isLiked"
              FROM Obserwacje o
              JOIN Przejscia p ON p.id_uzytkownika = o.id_obserwowanego
              JOIN Uzytkownicy u ON u.id_uzytkownika = p.id_uzytkownika
@@ -226,6 +230,7 @@ router.get(
                     username: row.login,
                     firstName: row.imie,
                     lastName: row.nazwisko,
+                    isLiked: row.isLiked,
                 })),
             });
         } catch (error) {

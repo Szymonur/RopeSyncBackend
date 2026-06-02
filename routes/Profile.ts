@@ -63,7 +63,7 @@ router.get(
 );
 
 // Pobierz profil zalogowanego użytkownika
-//tu ten authenticate ogarnia autoryzacje 
+//tu ten authenticate ogarnia autoryzacje
 router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const userId = (req.user as any).id;
@@ -133,6 +133,78 @@ router.get(
             console.error("Get user error:", error);
             res.status(500).json({
                 message: "Błąd serwera podczas pobierania danych użytkownika",
+            });
+        }
+    },
+);
+
+// Pobierz nieodczytane reakcje na moje przejścia
+router.get(
+    "/reactions/unread",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        try {
+            const userId = (req.user as any).id;
+
+            // Pobieramy reakcje na przejścia zalogowanego użytkownika, których jeszcze nie widział
+            const result = await query(
+                `SELECT 
+                    r.id_uzytkownika AS "reactorId",
+                    u.login AS "reactorUsername",
+                    u.imie AS "reactorFirstName",
+                    u.nazwisko AS "reactorLastName",
+                    r.id_przejscia AS "ascentId",
+                    p.id_drogi AS "routeId",
+                    d.nazwa_drogi AS "routeName",
+                    r.utworzono AS "createdAt"
+                 FROM Reakcje r
+                 JOIN Przejscia p ON r.id_przejscia = p.id_przejscia
+                 JOIN Uzytkownicy u ON r.id_uzytkownika = u.id_uzytkownika
+                 JOIN Drogi d ON p.id_drogi = d.id_drogi
+                 WHERE p.id_uzytkownika = $1 
+                   AND r.wyswietlono = 0
+                   AND r.id_uzytkownika <> $1
+                 ORDER BY r.utworzono DESC`,
+                [userId],
+            );
+
+            return res.json({
+                message: "Pobrano nieodczytane reakcje",
+                reactions: result.rows,
+            });
+        } catch (error) {
+            console.error("Get unread reactions error:", error);
+            return res.status(500).json({
+                message: "Błąd serwera podczas pobierania powiadomień",
+            });
+        }
+    },
+);
+
+// Oznacz wszystkie reakcje na moje przejścia jako odczytane
+router.post(
+    "/reactions/mark-read",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        try {
+            const userId = (req.user as any).id;
+
+            await query(
+                `UPDATE Reakcje
+                 SET wyswietlono = 1
+                 WHERE id_przejscia IN (
+                     SELECT id_przejscia FROM Przejscia WHERE id_uzytkownika = $1
+                 ) AND wyswietlono = 0`,
+                [userId],
+            );
+
+            return res.json({
+                message: "Oznaczono powiadomienia jako odczytane",
+            });
+        } catch (error) {
+            console.error("Mark reactions read error:", error);
+            return res.status(500).json({
+                message: "Błąd serwera podczas aktualizacji powiadomień",
             });
         }
     },
