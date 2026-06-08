@@ -177,7 +177,7 @@ router.get(
 );
 
 router.get(
-    "/me/feed",
+    "/feed",
     authenticateAccesJWT,
     async (req: Request, res: Response) => {
         const userId = (req.user as any).id;
@@ -193,7 +193,7 @@ router.get(
                 d.nazwa_drogi,
                 d.typ_drogi,
                 u.id_uzytkownika,
-                u.login,
+                u.login as username,
                 u.imie,
                 u.nazwisko,
                 COALESCE(ds.skala_linowa, dt.skala_linowa, db.skala_boulderowa) AS wycena,
@@ -213,25 +213,10 @@ router.get(
              LIMIT 50`,
                 [userId],
             );
-
             return res.json({
                 message: "Pobrano feed obserwowanych",
                 count: result.rowCount ?? 0,
-                feed: result.rows.map((row) => ({
-                    ascentId: row.id_przejscia,
-                    date: row.data,
-                    style: row.nazwa_stylu,
-                    routeId: row.id_drogi,
-                    routeName: row.nazwa_drogi,
-                    routeType: row.typ_drogi,
-                    note: row.notatka,
-                    grade: row.wycena,
-                    userId: row.id_uzytkownika,
-                    username: row.login,
-                    firstName: row.imie,
-                    lastName: row.nazwisko,
-                    isLiked: row.isLiked,
-                })),
+                feed: result.rows,
             });
         } catch (error) {
             console.error("Following feed error:", error);

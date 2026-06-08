@@ -27,7 +27,7 @@ router.post("/", async (req: Request, res: Response) => {
             username: user.username,
         };
 
-        const accesToken = jwt.sign(payload, JWT_ACCESS_SECRET, {
+        const accessToken = jwt.sign(payload, JWT_ACCESS_SECRET, {
             expiresIn: JWT_ACCESS_EXPIRATION_TIME,
         });
 
@@ -38,19 +38,18 @@ router.post("/", async (req: Request, res: Response) => {
         console.log(`LOGIN: User [${user.username}] login successfully`);
 
         res.json({
-            message: "Logowanie pomyślne",
-            accesToken,
+            accessToken,
             refreshToken,
-            id: user.id,
+            userId: user.id,
             username: user.username,
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
         });
     } catch (error: any) {
-        console.log(`LOGIN ERROR: ${error.message}`);
 
         if (error.message === "INVALID_CREDENTIALS") {
+        	console.log(`LOGIN ERROR: ${error.message}`);
             return res
                 .status(401)
                 .json({ message: "Nieprawidłowy login lub hasło" });

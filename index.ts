@@ -16,10 +16,13 @@ import restartPassword from "./routes/ResetPassword.js";
 import follow from "./routes/Follow.js";
 import unfollow from "./routes/Unfollow.js";
 import ascents from "./routes/Ascents.js";
+import routes from "./routes/Routes.js";
+
 
 const PORT = process.env.PORT;
 
 const app = express();
+app.use(cors());
 
 // // Security start
 app.use(helmet());
@@ -53,6 +56,7 @@ app.use("/reset-password", restartPassword);
 app.use("/follow", follow);
 app.use("/unfollow", unfollow);
 app.use("/ascents", ascents);
+app.use("/routes", routes);
 
 // const httpsServer = https.createServer(credentials, app);
 

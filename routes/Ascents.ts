@@ -6,6 +6,60 @@ const router = express.Router();
 
 const isIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
 
+router.get("/", authenticateAccesJWT, async (_req: Request, res: Response) => {
+   try {
+		const userId = (_req.user as any).id;
+		const result = await query(
+			`SELECT
+			p.id_przejscia,
+			p.data,
+			p.timeline_data,
+			p.notatka,
+			p.id_uzytkownika,
+			p.nazwa_stylu,
+			d.id_drogi,
+			d.nazwa_drogi,
+			d.typ_drogi,
+			u.imie,
+			u.nazwisko,
+			u.login as username,
+			COALESCE(ds.skala_linowa, dt.skala_linowa, db.skala_boulderowa) AS wycena
+			FROM przejscia p
+			JOIN drogi d ON d.id_drogi = p.id_drogi 
+			JOIN uzytkownicy u on p.id_uzytkownika = u.id_uzytkownika
+			LEFT JOIN Drogi_sportowe_szczegoly ds ON ds.id_drogi = d.id_drogi AND d.typ_drogi = 'sportowa'
+			LEFT JOIN Trady_szczegoly dt ON dt.id_drogi = d.id_drogi AND d.typ_drogi = 'trad'
+			LEFT JOIN Bouldery_szczegoly db ON db.id_drogi = d.id_drogi AND d.typ_drogi = 'boulder'
+			WHERE p.id_uzytkownika = $1
+			ORDER BY d.nazwa_drogi ASC;`, [userId]
+       );
+       return res.json({
+           message: "Pobrano przejscia",
+           ascents: result.rows,
+       });
+   } catch (error) {
+       console.error("List routes error:", error);
+       return res
+           .status(500)
+           .json({ message: "Błąd serwera podczas pobierania dróg" });
+   }
+});
+
+router.get("/styles", authenticateAccesJWT, async (_req: Request, res: Response) => {
+	try {
+		const result = await query(`SELECT nazwa_stylu FROM Style_przejscia ORDER BY nazwa_stylu ASC;`);
+		return res.json({
+			message: "Pobrano moliwe style przejść",
+			styles: result.rows,
+		});
+	} catch (error) {
+		console.error("List styles error:", error);
+		return res
+			.status(500)
+			.json({ message: "Błąd serwera podczas pobierania styli przejść" });
+	}
+});
+
 router.get(
     "/routes",
     authenticateAccesJWT,
@@ -39,7 +93,7 @@ router.get(
 
 router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     const userId = Number((req.user as any)?.id);
-    const { data, id_drogi, timeline_data, notatka, nazwa_stylu, id } =
+    const { data, id_drogi, timeline_data, notatka, nazwa_stylu, id_przejscia } =
         req.body ?? {};
 
     if (!Number.isInteger(userId) || userId <= 0) {
@@ -89,7 +143,7 @@ router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
                 id_drogi
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
                 [
-                    id,
+                    id_przejscia,
                     data,
                     notatka ?? null,
                     timeline_data,
@@ -99,13 +153,12 @@ router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
                 ],
             );
         } catch (e) {
-            console.log(e);
+			return res.status(400).json({ message: "Błąd podczas dodawnai przejścia do bazy danych" });
         }
-
         return res.status(201).json({
             message: "Przejście zapisane",
             ascent: {
-                id_przejscia: id,
+                id_przejscia: id_przejscia,
                 data,
                 id_drogi,
                 notatka: notatka ?? null,
@@ -211,12 +264,12 @@ router.delete(
 );
 
 router.post(
-    "/:ascentId/react",
+    "/:ascentId/toggle-reaction",
     authenticateAccesJWT,
     async (req: Request, res: Response) => {
         const userId = Number((req.user as any)?.id);
         const { ascentId } = req.params;
-
+		
         if (!Number.isInteger(userId) || userId <= 0) {
             return res.status(401).json({ message: "Nieprawidłowy użytkownik" });
         }
@@ -245,14 +298,13 @@ router.post(
                 );
                 return res.json({
                     message: "Reakcja usunięta",
-                    reacted: false,
                 });
             } else {
                 await query(
                     "INSERT INTO Reakcje (id_uzytkownika, id_przejscia) VALUES ($1, $2)",
                     [userId, ascentId],
                 );
-                return res.json({ message: "Reakcja dodana", reacted: true });
+                return res.json({ message: "Reakcja dodana"});
             }
         } catch (error) {
             console.error("React error:", error);
