@@ -14,7 +14,22 @@ const getSingleParamValue = (value: string | string[] | undefined) => {
     if (Array.isArray(value)) return value[0];
     return value;
 };
-
+/**
+ * @openapi
+ * /follow:
+ *   post:
+ *     tags:
+ *       - Follow
+ *     summary: Zaobserwuj użytkownika przez zalogowanego użytkownika
+ *     security:
+ *       - bearerAuth: []
+ * 
+ *     responses:
+ *       201:
+ *         description: Sukces, udało się zaobserwować
+ *       409:
+ *         description: Już obserwujesz tego użytkownika
+ */
 router.post(
     "/:userId",
     authenticateAccesJWT,

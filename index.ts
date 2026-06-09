@@ -1,75 +1,90 @@
 import fs from "fs";
-import https from "https";
 import express from "express";
 
 import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
 
 import "dotenv/config";
 
-import login from "./routes/Login.js";
-import profile from "./routes/Profile.js";
-import register from "./routes/Register.js";
-import refresh from "./routes/Refresh.js";
-import restartPassword from "./routes/ResetPassword.js";
-import follow from "./routes/Follow.js";
-import unfollow from "./routes/Unfollow.js";
+import auth from "./routes/Auth.js";
+import users from "./routes/Users.js";
+import notifications from "./routes/Notifications.js";
+import dictionaries from "./routes/Dictionaries.js";
 import ascents from "./routes/Ascents.js";
 import routes from "./routes/Routes.js";
 import regions from "./routes/Regions.js";
 import rocks from "./routes/Rocks.js";
 import sectors from "./routes/Sectors.js";
 
-
 const PORT = process.env.PORT;
 
 const app = express();
 app.use(cors());
 
-// // Security start
 app.use(helmet());
-// app.use(
-//     cors({
-//         origin: process.env.FRONTEND_URL,
-//         credentials: true,
-//     }),
-// );
+
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes window
-    max: 100, // limit 100 requests from IP In 15 minutes
+    max: 100, // limit 100 requests from IP in 15 minutes
     message: "Too many requests from your IP, try again later.",
 });
-app.use("/login", limiter);
-app.use("/register", limiter);
 
-app.use(express.json({ limit: "10kb" })); // size limit
-// // Security send
+// Swagger configuration
+const swaggerOptions = {
+    definition: {
+        openapi: "3.0.0",
+        info: {
+            title: "RopeSync API",
+            version: "1.0.0",
+            description: "Dokumentacja API dla aplikacji RopeSync (Backend)",
+        },
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: "http",
+                    scheme: "bearer",
+                    bearerFormat: "JWT",
+                },
+            },
+        },
+        security: [
+            {
+                bearerAuth: [],
+            },
+        ],
+        servers: [
+            {
+                url: `http://localhost:${PORT}`,
+                description: "Development server",
+            },
+        ],
+    },
+    apis: ["./routes/*.ts", "./routes/*.js"], // Path to the API docs
+};
 
-const privateKey = fs.readFileSync("server.key", "utf8");
-const certificate = fs.readFileSync("server.cert", "utf8");
+const swaggerDocs = swaggerJsdoc(swaggerOptions);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-const credentials = { key: privateKey, cert: certificate };
+// Limiter applied to auth routes
+app.use("/auth/login", limiter);
+app.use("/auth/register", limiter);
 
-app.use("/login", login);
-app.use("/register", register);
-app.use("/profile", profile);
-app.use("/refresh", refresh);
-app.use("/reset-password", restartPassword);
-app.use("/follow", follow);
-app.use("/unfollow", unfollow);
+app.use(express.json({ limit: "10kb" }));
+
+app.use("/auth", auth);
+app.use("/users", users);
+app.use("/notifications", notifications);
+app.use("/", dictionaries); // For /styles
 app.use("/ascents", ascents);
 app.use("/routes", routes);
 app.use("/regions", regions);
 app.use("/sectors", sectors);
 app.use("/rocks", rocks);
 
-// const httpsServer = https.createServer(credentials, app);
-
-// httpsServer.listen(PORT, () => {
-//     console.log(`Server running on port ${PORT}`);
-// });
-
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`Documentation available at http://localhost:${PORT}/api-docs`);
 });
