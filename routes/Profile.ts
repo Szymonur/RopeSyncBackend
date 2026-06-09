@@ -138,6 +138,49 @@ router.get(
     },
 );
 
+router.get(
+    "/reactions/notifications",
+    authenticateAccesJWT,
+    async (req: Request, res: Response) => {
+        try {
+            const userId = (req.user as any).id;
+			console.log(userId);
+			
+            // Pobieramy reakcje na przejścia zalogowanego użytkownika
+            const result = await query(
+                `SELECT 
+                    r.id_uzytkownika,
+                    u.login AS username, 
+                    u.imie,
+                    u.nazwisko,
+                    r.id_przejscia,
+                    p.id_drogi,
+                    d.nazwa_drogi,
+                    r.utworzono AS data_reakcji
+                 FROM Reakcje r
+                 JOIN Przejscia p ON r.id_przejscia = p.id_przejscia
+                 JOIN Uzytkownicy u ON r.id_uzytkownika = u.id_uzytkownika
+                 JOIN Drogi d ON p.id_drogi = d.id_drogi
+                 WHERE p.id_uzytkownika = $1 
+                   AND r.id_uzytkownika <> $1
+                 ORDER BY r.utworzono DESC`,
+                [userId],
+            );
+			console.log("result: ", result.rows);
+			
+            return res.json({
+                message: "Pobrano reakcje",
+                notifications: result.rows,
+            });
+        } catch (error) {
+            console.error("Get notifications error:", error);
+            return res.status(500).json({
+                message: "Błąd serwera podczas pobierania powiadomień",
+            });
+        }
+    },
+);
+
 // Pobierz nieodczytane reakcje na moje przejścia
 router.get(
     "/reactions/unread",
@@ -183,7 +226,7 @@ router.get(
 
 // Oznacz wszystkie reakcje na moje przejścia jako odczytane
 router.post(
-    "/reactions/mark-read",
+    "/reactions/mark-as-read",
     authenticateAccesJWT,
     async (req: Request, res: Response) => {
         try {

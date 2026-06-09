@@ -17,6 +17,9 @@ import follow from "./routes/Follow.js";
 import unfollow from "./routes/Unfollow.js";
 import ascents from "./routes/Ascents.js";
 import routes from "./routes/Routes.js";
+import regions from "./routes/Regions.js";
+import rocks from "./routes/Rocks.js";
+import sectors from "./routes/Sectors.js";
 
 
 const PORT = process.env.PORT;
@@ -57,6 +60,9 @@ app.use("/follow", follow);
 app.use("/unfollow", unfollow);
 app.use("/ascents", ascents);
 app.use("/routes", routes);
+app.use("/regions", regions);
+app.use("/sectors", sectors);
+app.use("/rocks", rocks);
 
 // const httpsServer = https.createServer(credentials, app);
 
