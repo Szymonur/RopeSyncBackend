@@ -148,7 +148,7 @@ router.get("/me", authenticateAccesJWT, async (req: Request, res: Response) => {
         res.json({
             message: "Profil pobrany pomyślnie",
             user: {
-                id: user.id_uzytkownika,
+                userId: user.id_uzytkownika,
                 username: user.login,
                 email: user.email,
                 firstName: user.imie,

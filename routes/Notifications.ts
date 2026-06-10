@@ -110,6 +110,57 @@ router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
 
 /**
  * @openapi
+ * /notifications/unread/count:
+ *   get:
+ *     tags:
+ *       - Notifications
+ *     summary: Get unread notifications count
+ *     description: Returns the total number of unread reactions on user's ascents.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Count of unread notifications
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 count:
+ *                   type: integer
+ *                   example: 5
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during count retrieval
+ */
+router.get("/unread/count", authenticateAccesJWT, async (req: Request, res: Response) => {
+    try {
+        const userId = (req.user as any).id;
+
+        const result = await query(
+            `SELECT COUNT(*)::INT as count 
+             FROM Reakcje r
+             JOIN Przejscia p ON r.id_przejscia = p.id_przejscia
+             WHERE p.id_uzytkownika = $1 
+               AND r.wyswietlono = 0
+               AND r.id_uzytkownika <> $1`,
+            [userId],
+        );
+
+        return res.json({
+            count: result.rows[0].count,
+        });
+    } catch (error) {
+        console.error("Get unread count error:", error);
+        return res.status(500).json({
+            message: "Błąd serwera podczas pobierania licznika powiadomień",
+        });
+    }
+});
+
+/**
+ * @openapi
  * /notifications:
  *   patch:
  *     tags:
