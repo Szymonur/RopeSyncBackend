@@ -4,8 +4,41 @@ import { query } from "../db/db.js";
 
 const router = express.Router();
 
-// GET /notifications
-// Można filtrować: GET /notifications?unread=true
+/**
+ * @openapi
+ * /notifications:
+ *   get:
+ *     tags:
+ *       - Notifications
+ *     summary: Get user notifications
+ *     description: Returns a list of notifications (reactions to user's ascents). Can be filtered to show only unread notifications.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: unread
+ *         schema:
+ *           type: boolean
+ *         description: True only unread notifications are returned, False all notifications are returned
+ *     responses:
+ *       200:
+ *         description: List of notifications
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 notifications:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Notification'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during notification retrieval
+ */
 router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const userId = (req.user as any).id;
@@ -15,14 +48,15 @@ router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
             // Pobieramy reakcje na przejścia zalogowanego użytkownika, których jeszcze nie widział
             const result = await query(
                 `SELECT 
-                    r.id_uzytkownika AS "reactorId",
-                    u.login AS "reactorUsername",
-                    u.imie AS "reactorFirstName",
-                    u.nazwisko AS "reactorLastName",
-                    r.id_przejscia AS "ascentId",
-                    p.id_drogi AS "routeId",
-                    d.nazwa_drogi AS "routeName",
-                    r.utworzono AS "createdAt"
+                    r.id_uzytkownika,
+                    u.login as username,
+                    u.imie,
+                    u.nazwisko,
+                    r.id_przejscia,
+                    p.id_drogi,
+                    d.nazwa_drogi,
+                    r.utworzono as data_reakcji,
+					r.wyswietlono
                  FROM Reakcje r
                  JOIN Przejscia p ON r.id_przejscia = p.id_przejscia
                  JOIN Uzytkownicy u ON r.id_uzytkownika = u.id_uzytkownika
@@ -74,8 +108,24 @@ router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     }
 });
 
-// PATCH /notifications
-// Oznacz wszystkie powiadomienia jako odczytane
+/**
+ * @openapi
+ * /notifications:
+ *   patch:
+ *     tags:
+ *       - Notifications
+ *     summary: Mark all notifications as read
+ *     description: Updates the status of all unread notifications for the current user to 'read'.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notifications marked as read
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during notification update
+ */
 router.patch("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const userId = (req.user as any).id;

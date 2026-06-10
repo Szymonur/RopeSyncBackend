@@ -25,7 +25,8 @@ interface JwtPayload {
  *   post:
  *     tags:
  *       - Auth
- *     summary: Logowanie użytkownika
+ *     summary: User login
+ *     description: Authenticates a user and returns access and refresh tokens along with user profile.
  *     requestBody:
  *       required: true
  *       content:
@@ -42,9 +43,32 @@ interface JwtPayload {
  *                 type: string
  *     responses:
  *       200:
- *         description: Logowanie udane, zwraca accessToken, refreshToken i dane użytkownika
+ *         description: Login successful, returns tokens and user data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                 refreshToken:
+ *                   type: string
+ *                 userId:
+ *                   type: integer
+ *                 username:
+ *                   type: string
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *       400:
+ *         description: Login and password are required
  *       401:
- *         description: Nieprawidłowe dane logowania
+ *         description: Invalid credentials
+ *       500:
+ *         description: Server error during login
  */
 router.post("/login", async (req: Request, res: Response) => {
     const { username, password } = req.body;
@@ -95,7 +119,8 @@ router.post("/login", async (req: Request, res: Response) => {
  *   post:
  *     tags:
  *       - Auth
- *     summary: Rejestracja nowego użytkownika
+ *     summary: Register a new user
+ *     description: Creates a new user account in the system.
  *     requestBody:
  *       required: true
  *       content:
@@ -121,9 +146,22 @@ router.post("/login", async (req: Request, res: Response) => {
  *                 type: string
  *     responses:
  *       201:
- *         description: Użytkownik zarejestrowany pomyślnie
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 userId:
+ *                   type: integer
+ *       400:
+ *         description: All fields are required or invalid input data
  *       409:
- *         description: Login lub e-mail już istnieje w bazie
+ *         description: Username or email already exists
+ *       500:
+ *         description: Server error during registration
  */
 router.post("/register", async (req: Request, res: Response) => {
     const { username, password, firstName, lastName, email } = req.body;
@@ -174,7 +212,8 @@ router.post("/register", async (req: Request, res: Response) => {
  *   post:
  *     tags:
  *       - Auth
- *     summary: Odświeżenie Access Tokena za pomocą Refresh Tokena
+ *     summary: Refresh access token
+ *     description: Provides a new access token using a valid refresh token.
  *     requestBody:
  *       required: true
  *       content:
@@ -188,9 +227,11 @@ router.post("/register", async (req: Request, res: Response) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: Zwraca nowy Access Token
+ *         description: Returns a new access token
+ *       401:
+ *         description: Refresh token is missing
  *       403:
- *         description: Refresh Token jest nieważny lub wygasł
+ *         description: Refresh token is invalid or expired
  */
 router.post("/refresh", (req: Request, res: Response) => {
     const { refreshToken } = req.body;
@@ -225,7 +266,8 @@ router.post("/refresh", (req: Request, res: Response) => {
  *   post:
  *     tags:
  *       - Auth
- *     summary: Prośba o reset hasła (wysyłka e-mail)
+ *     summary: Request password reset
+ *     description: Sends a password reset email if the account exists.
  *     requestBody:
  *       required: true
  *       content:
@@ -239,7 +281,11 @@ router.post("/refresh", (req: Request, res: Response) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: Informacja o wysłaniu e-maila (nawet jeśli nie istnieje, dla bezpieczeństwa)
+ *         description: Instruction sent to the email address (always returns 200 for security)
+ *       400:
+ *         description: Email is required or invalid format
+ *       500:
+ *         description: Server error during password reset request
  */
 router.post("/reset-password", async (req: Request, res: Response) => {
     const { email } = req.body;
@@ -289,7 +335,8 @@ router.post("/reset-password", async (req: Request, res: Response) => {
  *   post:
  *     tags:
  *       - Auth
- *     summary: Potwierdzenie zmiany hasła za pomocą tokena
+ *     summary: Confirm password reset
+ *     description: Resets the user password using a valid reset token.
  *     requestBody:
  *       required: true
  *       content:
@@ -306,9 +353,13 @@ router.post("/reset-password", async (req: Request, res: Response) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: Hasło zostało zmienione
+ *         description: Password successfully changed
  *       400:
- *         description: Nieprawidłowy lub wygasły token
+ *         description: Missing token or password, or invalid/expired token
+ *       404:
+ *         description: Account associated with the token no longer exists
+ *       500:
+ *         description: Server error during password reset confirmation
  */
 router.post("/reset-password/confirm", async (req: Request, res: Response) => {
     const { token, newPassword } = req.body;
@@ -330,7 +381,7 @@ router.post("/reset-password/confirm", async (req: Request, res: Response) => {
             case "EXPIRED_TOKEN":
                 return res.status(400).json({ message: "Link do resetu hasła wygasł. Wygeneruj nową prośbę." });
             case "FAILED_UPDATE_USER_PASSWORD":
-                return res.status(404).json({ message: "Konto powiązane z tym linkiem już nie istnieje." });
+                return res.status(404).json({ message: "Konto powiązane with tym linkiem już nie istnieje." });
             default:
                 return res.status(500).json({ message: "Wystąpił nieoczekiwany błąd serwera. Spróbuj ponownie później." });
         }

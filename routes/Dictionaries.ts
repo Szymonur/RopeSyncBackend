@@ -4,7 +4,24 @@ import { query } from "../db/db.js";
 
 const router = express.Router();
 
-// GET /styles - Pobiera dostępne style przejść (np. RP, OS, Flash)
+/**
+ * @openapi
+ * /dictionaries/styles:
+ *   get:
+ *     tags:
+ *       - Dictionaries
+ *     summary: Get available ascent styles
+ *     description: Returns a list of possible climbing styles (e.g., RP, OS, Flash).
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of ascent styles
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during styles retrieval
+ */
 router.get("/styles", authenticateAccesJWT, async (_req: Request, res: Response) => {
     try {
         const result = await query(`SELECT nazwa_stylu FROM Style_przejscia ORDER BY nazwa_stylu ASC;`);

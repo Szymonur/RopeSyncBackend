@@ -11,7 +11,43 @@ const parseUserIdParam = (value: string | string[] | undefined) => {
     return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
-// GET /users - Wyszukiwanie użytkowników
+/**
+ * @openapi
+ * /users:
+ *   get:
+ *     tags:
+ *       - Users
+ *     summary: Search for users
+ *     description: Search for users by username, first name, or last name.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search phrase (minimum 2 characters)
+ *     responses:
+ *       200:
+ *         description: List of users matching the search criteria
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Search phrase too short
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during user search
+ */
 router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const requesterId = (req.user as any).id;
@@ -65,7 +101,35 @@ router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     }
 });
 
-// GET /users/me - Profil zalogowanego użytkownika
+/**
+ * @openapi
+ * /users/me:
+ *   get:
+ *     tags:
+ *       - Users
+ *     summary: Get current user profile
+ *     description: Returns the profile of the currently authenticated user.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error during profile retrieval
+ */
 router.get("/me", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const userId = (req.user as any).id;
@@ -97,7 +161,239 @@ router.get("/me", authenticateAccesJWT, async (req: Request, res: Response) => {
     }
 });
 
-// GET /users/:userId - Profil konkretnego użytkownika
+/**
+ * @openapi
+ * /users/me/feed:
+ *   get:
+ *     tags:
+ *       - Feed
+ *     summary: Get user following feed
+ *     description: Returns a list of recent ascents from users the current user is following.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Following feed retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 count:
+ *                   type: integer
+ *                 feed:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Ascent'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during feed retrieval
+ */
+router.get("/me/feed", authenticateAccesJWT, async (req: Request, res: Response) => {
+    const userId = (req.user as any).id;
+
+    try {
+        const result = await query(
+            `SELECT
+            p.id_przejscia,
+            p.notatka,
+            p.data,
+            p.nazwa_stylu,
+            d.id_drogi,
+            d.nazwa_drogi,
+            d.typ_drogi,
+            u.id_uzytkownika,
+            u.login as username,
+            u.imie,
+            u.nazwisko,
+            COALESCE(ds.skala_linowa, dt.skala_linowa, db.skala_boulderowa) AS wycena,
+            EXISTS (
+                SELECT 1 FROM Reakcje r 
+                WHERE r.id_przejscia = p.id_przejscia AND r.id_uzytkownika = $1
+            ) AS "isLiked"
+         FROM Obserwacje o
+         JOIN Przejscia p ON p.id_uzytkownika = o.id_obserwowanego
+         JOIN Uzytkownicy u ON u.id_uzytkownika = p.id_uzytkownika
+         JOIN Drogi d ON d.id_drogi = p.id_drogi
+         LEFT JOIN Drogi_sportowe_szczegoly ds ON ds.id_drogi = d.id_drogi AND d.typ_drogi = 'sportowa'
+         LEFT JOIN Trady_szczegoly dt ON dt.id_drogi = d.id_drogi AND d.typ_drogi = 'trad'
+         LEFT JOIN Bouldery_szczegoly db ON db.id_drogi = d.id_drogi AND d.typ_drogi = 'boulder'
+         WHERE o.id_obserwujacego = $1
+         ORDER BY p.data DESC, p.id_przejscia DESC
+         LIMIT 50`,
+            [userId],
+        );
+        return res.json({
+            message: "Pobrano feed obserwowanych",
+            count: result.rowCount ?? 0,
+            feed: result.rows,
+        });
+    } catch (error) {
+        console.error("Following feed error:", error);
+        return res.status(500).json({ message: "Błąd serwera podczas pobierania feedu" });
+    }
+});
+
+/**
+ * @openapi
+ * /users/me/following:
+ *   get:
+ *     tags:
+ *       - Users
+ *     summary: Get list of users the current user is following
+ *     description: Returns a list of users that the currently authenticated user is following.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of following users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 count:
+ *                   type: integer
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during following list retrieval
+ */
+router.get("/me/following", authenticateAccesJWT, async (req: Request, res: Response) => {
+    const userId = (req.user as any).id;
+
+    try {
+        const result = await query(
+            `SELECT u.id_uzytkownika, u.login, u.imie, u.nazwisko, o.data_rozpoczecia
+         FROM Obserwacje o
+         JOIN Uzytkownicy u ON u.id_uzytkownika = o.id_obserwowanego
+         WHERE o.id_obserwujacego = $1
+         ORDER BY o.data_rozpoczecia DESC`,
+            [userId],
+        );
+
+        return res.json({
+            message: "Pobrano listę obserwowanych",
+            count: result.rowCount ?? 0,
+            users: result.rows.map((row) => ({
+                id: row.id_uzytkownika,
+                username: row.login,
+                firstName: row.imie,
+                lastName: row.nazwisko,
+                followedAt: row.data_rozpoczecia,
+            })),
+        });
+    } catch (error) {
+        console.error("Following list error:", error);
+        return res.status(500).json({ message: "Błąd serwera podczas pobierania obserwowanych" });
+    }
+});
+
+/**
+ * @openapi
+ * /users/me/followers:
+ *   get:
+ *     tags:
+ *       - Users
+ *     summary: Get list of users following the current user
+ *     description: Returns a list of users who are following the currently authenticated user.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of followers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 count:
+ *                   type: integer
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during followers list retrieval
+ */
+router.get("/me/followers", authenticateAccesJWT, async (req: Request, res: Response) => {
+    const userId = (req.user as any).id;
+
+    try {
+        const result = await query(
+            `SELECT u.id_uzytkownika, u.login, u.imie, u.nazwisko, o.data_rozpoczecia
+         FROM Obserwacje o
+         JOIN Uzytkownicy u ON u.id_uzytkownika = o.id_obserwujacego
+         WHERE o.id_obserwowanego = $1
+         ORDER BY o.data_rozpoczecia DESC`,
+            [userId],
+        );
+
+        return res.json({
+            message: "Pobrano listę obserwujących",
+            count: result.rowCount ?? 0,
+            users: result.rows.map((row) => ({
+                id: row.id_uzytkownika,
+                username: row.login,
+                firstName: row.imie,
+                lastName: row.nazwisko,
+                followedAt: row.data_rozpoczecia,
+            })),
+        });
+    } catch (error) {
+        console.error("Followers list error:", error);
+        return res.status(500).json({ message: "Błąd serwera podczas pobierania obserwujących" });
+    }
+});
+
+/**
+ * @openapi
+ * /users/{userId}:
+ *   get:
+ *     tags:
+ *       - Users
+ *     summary: Get user profile by ID
+ *     description: Returns the profile of a specific user.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error during user data retrieval
+ */
 router.get("/:userId", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const userId = req.params.userId;
@@ -128,7 +424,30 @@ router.get("/:userId", authenticateAccesJWT, async (req: Request, res: Response)
     }
 });
 
-// GET /users/:userId/stats - Statystyki użytkownika
+/**
+ * @openapi
+ * /users/{userId}/stats:
+ *   get:
+ *     tags:
+ *       - Users
+ *     summary: Get user statistics
+ *     description: Returns climbing statistics for a specific user, including best ascents and charts.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User statistics
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during statistics retrieval
+ */
 router.get("/:userId/stats", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const { userId } = req.params;
@@ -258,7 +577,36 @@ router.get("/:userId/stats", authenticateAccesJWT, async (req: Request, res: Res
     }
 });
 
-// POST /users/:userId/followers - Obserwuj użytkownika
+/**
+ * @openapi
+ * /users/{userId}/followers:
+ *   post:
+ *     tags:
+ *       - Users
+ *     summary: Follow a user
+ *     description: Start following a specific user.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: User followed successfully
+ *       400:
+ *         description: Invalid user ID or trying to follow yourself
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User to follow not found
+ *       409:
+ *         description: Already following this user
+ *       500:
+ *         description: Server error during follow action
+ */
 router.post("/:userId/followers", authenticateAccesJWT, async (req: Request, res: Response) => {
     const followerId = (req.user as any).id;
     const followedId = parseUserIdParam(req.params.userId);
@@ -296,7 +644,34 @@ router.post("/:userId/followers", authenticateAccesJWT, async (req: Request, res
     }
 });
 
-// DELETE /users/:userId/followers - Przestań obserwować
+/**
+ * @openapi
+ * /users/{userId}/followers:
+ *   delete:
+ *     tags:
+ *       - Users
+ *     summary: Unfollow a user
+ *     description: Stop following a specific user.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Unfollowed successfully
+ *       400:
+ *         description: Invalid user ID
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Not following this user
+ *       500:
+ *         description: Server error during unfollow action
+ */
 router.delete("/:userId/followers", authenticateAccesJWT, async (req: Request, res: Response) => {
     const followerId = (req.user as any).id;
     const followedId = parseUserIdParam(req.params.userId);
@@ -322,7 +697,32 @@ router.delete("/:userId/followers", authenticateAccesJWT, async (req: Request, r
     }
 });
 
-// GET /users/:userId/followers/me - Sprawdź status obserwowania
+/**
+ * @openapi
+ * /users/{userId}/followers/me:
+ *   get:
+ *     tags:
+ *       - Users
+ *     summary: Check follow status
+ *     description: Checks if the current user is following the specified user.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Follow status
+ *       400:
+ *         description: Invalid user ID
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during follow status check
+ */
 router.get("/:userId/followers/me", authenticateAccesJWT, async (req: Request, res: Response) => {
     const followerId = (req.user as any).id;
     const followedId = parseUserIdParam(req.params.userId);

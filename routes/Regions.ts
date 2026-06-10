@@ -5,6 +5,40 @@ import { query } from "../db/db.js";
 
 const router = express.Router();
 
+/**
+ * @openapi
+ * /regions/search:
+ *   get:
+ *     tags:
+ *       - Regions
+ *     summary: Search regions by name
+ *     description: Returns a list of regions matching the search query.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Search query for region name
+ *     responses:
+ *       200:
+ *         description: List of regions matching the search query
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 regions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Region'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during regions search
+ */
 router.get("/search", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const searchQuery = typeof req.query.query === "string" ? req.query.query : "";
@@ -19,6 +53,40 @@ router.get("/search", authenticateAccesJWT, async (req: Request, res: Response) 
     }
 });
 
+/**
+ * @openapi
+ * /regions/{id}/sectors:
+ *   get:
+ *     tags:
+ *       - Regions
+ *     summary: Get sectors in a region
+ *     description: Returns a list of sectors belonging to a specific region.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Region ID
+ *     responses:
+ *       200:
+ *         description: List of sectors in the region
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 sectors:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Sector'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during sectors retrieval
+ */
 router.get("/:id/sectors", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const regionId = req.params.id;
@@ -30,6 +98,40 @@ router.get("/:id/sectors", authenticateAccesJWT, async (req: Request, res: Respo
     }
 });
 
+/**
+ * @openapi
+ * /regions/{id}:
+ *   get:
+ *     tags:
+ *       - Regions
+ *     summary: Get region details
+ *     description: Returns detailed information about a specific climbing region.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Region ID
+ *     responses:
+ *       200:
+ *         description: Region details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 region:
+ *                   $ref: '#/components/schemas/Region'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Region not found
+ *       500:
+ *         description: Server error during region retrieval
+ */
 router.get("/:id", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
@@ -44,6 +146,33 @@ router.get("/:id", authenticateAccesJWT, async (req: Request, res: Response) => 
     }
 });
 
+/**
+ * @openapi
+ * /regions:
+ *   get:
+ *     tags:
+ *       - Regions
+ *     summary: Get all regions
+ *     description: Returns a list of all climbing regions.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all regions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 regions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Region'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during regions retrieval
+ */
 router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const result = await query("SELECT * FROM Rejony");

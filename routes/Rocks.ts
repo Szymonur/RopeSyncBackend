@@ -4,6 +4,40 @@ import { query } from "../db/db.js";
 
 const router = express.Router();
 
+/**
+ * @openapi
+ * /rocks/search:
+ *   get:
+ *     tags:
+ *       - Rocks
+ *     summary: Search rocks by name
+ *     description: Returns a list of climbing rocks matching the search query.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Search query for rock name
+ *     responses:
+ *       200:
+ *         description: List of rocks matching the search query
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 rocks:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Rock'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during rocks search
+ */
 router.get("/search", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const searchQuery = typeof req.query.query === "string" ? req.query.query : "";
@@ -23,6 +57,40 @@ router.get("/search", authenticateAccesJWT, async (req: Request, res: Response) 
     }
 });
 
+/**
+ * @openapi
+ * /rocks/{id}:
+ *   get:
+ *     tags:
+ *       - Rocks
+ *     summary: Get rock details
+ *     description: Returns detailed information about a specific climbing rock.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Rock ID
+ *     responses:
+ *       200:
+ *         description: Rock details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 rock:
+ *                   $ref: '#/components/schemas/Rock'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Rock not found
+ *       500:
+ *         description: Server error during rock retrieval
+ */
 router.get("/:id", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
@@ -37,6 +105,33 @@ router.get("/:id", authenticateAccesJWT, async (req: Request, res: Response) => 
     }
 });
 
+/**
+ * @openapi
+ * /rocks:
+ *   get:
+ *     tags:
+ *       - Rocks
+ *     summary: Get all rocks
+ *     description: Returns a list of all climbing rocks.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all rocks
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 rocks:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Rock'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during rocks retrieval
+ */
 router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     try {
         const result = await query("SELECT * FROM Skaly");

@@ -1,4 +1,3 @@
-import fs from "fs";
 import express from "express";
 
 import helmet from "helmet";
@@ -8,6 +7,8 @@ import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 
 import "dotenv/config";
+
+import { swaggerOptions } from "./config/swagger.js";
 
 import auth from "./routes/Auth.js";
 import users from "./routes/Users.js";
@@ -32,39 +33,6 @@ const limiter = rateLimit({
     message: "Too many requests from your IP, try again later.",
 });
 
-// Swagger configuration
-const swaggerOptions = {
-    definition: {
-        openapi: "3.0.0",
-        info: {
-            title: "RopeSync API",
-            version: "1.0.0",
-            description: "Dokumentacja API dla aplikacji RopeSync (Backend)",
-        },
-        components: {
-            securitySchemes: {
-                bearerAuth: {
-                    type: "http",
-                    scheme: "bearer",
-                    bearerFormat: "JWT",
-                },
-            },
-        },
-        security: [
-            {
-                bearerAuth: [],
-            },
-        ],
-        servers: [
-            {
-                url: `http://localhost:${PORT}`,
-                description: "Development server",
-            },
-        ],
-    },
-    apis: ["./routes/*.ts", "./routes/*.js"], // Path to the API docs
-};
-
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
@@ -77,7 +45,7 @@ app.use(express.json({ limit: "10kb" }));
 app.use("/auth", auth);
 app.use("/users", users);
 app.use("/notifications", notifications);
-app.use("/", dictionaries); // For /styles
+app.use("/dictionaries", dictionaries); // For /styles
 app.use("/ascents", ascents);
 app.use("/routes", routes);
 app.use("/regions", regions);

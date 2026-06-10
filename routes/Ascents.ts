@@ -12,12 +12,28 @@ const isIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
  *   get:
  *     tags:
  *       - Ascents
- *     summary: Pobierz listę przejść zalogowanego użytkownika
+ *     summary: Get user ascents
+ *     description: Returns a list of climbing ascents for the currently authenticated user.
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Lista przejść
+ *         description: List of ascents
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 ascents:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Ascent'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during ascents retrieval
  */
 router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
    try {
@@ -64,7 +80,8 @@ router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
  *   post:
  *     tags:
  *       - Ascents
- *     summary: Dodaj nowe przejście
+ *     summary: Add a new ascent
+ *     description: Records a new climbing ascent for the user.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -87,9 +104,30 @@ router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
  *               nazwa_stylu:
  *                 type: string
  *                 example: "RP"
+ *               timeline_data:
+ *                 type: object
+ *               id_przejscia:
+ *                 type: string
  *     responses:
  *       201:
- *         description: Przejście zapisane
+ *         description: Ascent saved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 ascent:
+ *                   $ref: '#/components/schemas/Ascent'
+ *       400:
+ *         description: Missing required fields or invalid data
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Route not found
+ *       500:
+ *         description: Server error during ascent creation
  */
 router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
     const userId = Number((req.user as any)?.id);
@@ -174,7 +212,8 @@ router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
  *   get:
  *     tags:
  *       - Ascents
- *     summary: Szczegóły konkretnego przejścia
+ *     summary: Get ascent details
+ *     description: Returns detailed information about a specific climbing ascent.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -185,9 +224,22 @@ router.post("/", authenticateAccesJWT, async (req: Request, res: Response) => {
  *           type: string
  *     responses:
  *       200:
- *         description: Dane przejścia
+ *         description: Ascent details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 ascent:
+ *                   $ref: '#/components/schemas/Ascent'
+ *       401:
+ *         description: Unauthorized
  *       404:
- *         description: Nie znaleziono przejścia
+ *         description: Ascent not found
+ *       500:
+ *         description: Server error during ascent detail retrieval
  */
 router.get("/:ascentId", authenticateAccesJWT, async (req: Request, res: Response) => {
     const { ascentId } = req.params;
@@ -240,7 +292,8 @@ router.get("/:ascentId", authenticateAccesJWT, async (req: Request, res: Respons
  *   delete:
  *     tags:
  *       - Ascents
- *     summary: Usuń przejście
+ *     summary: Delete an ascent
+ *     description: Removes a climbing ascent record. Only the owner can delete their ascent.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -251,9 +304,13 @@ router.get("/:ascentId", authenticateAccesJWT, async (req: Request, res: Respons
  *           type: string
  *     responses:
  *       200:
- *         description: Przejście usunięte
+ *         description: Ascent deleted successfully
+ *       401:
+ *         description: Unauthorized
  *       404:
- *         description: Nie znaleziono przejścia
+ *         description: Ascent not found or permission denied
+ *       500:
+ *         description: Server error during ascent deletion
  */
 router.delete("/:ascentId", authenticateAccesJWT, async (req: Request, res: Response) => {
     const userId = Number((req.user as any)?.id);
@@ -290,7 +347,8 @@ router.delete("/:ascentId", authenticateAccesJWT, async (req: Request, res: Resp
  *   get:
  *     tags:
  *       - Reactions
- *     summary: Pobierz status reakcji dla przejścia
+ *     summary: Get reactions for an ascent
+ *     description: Returns the number of reactions for an ascent and whether the current user has reacted.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -301,7 +359,11 @@ router.delete("/:ascentId", authenticateAccesJWT, async (req: Request, res: Resp
  *           type: string
  *     responses:
  *       200:
- *         description: Liczba reakcji i informacja czy ja zareagowałem
+ *         description: Reaction count and user status
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during reactions retrieval
  */
 router.get("/:ascentId/reactions", authenticateAccesJWT, async (req: Request, res: Response) => {
     const userId = (req.user as any).id;
@@ -336,7 +398,8 @@ router.get("/:ascentId/reactions", authenticateAccesJWT, async (req: Request, re
  *   post:
  *     tags:
  *       - Reactions
- *     summary: Dodaj reakcję do przejścia
+ *     summary: Add a reaction to an ascent
+ *     description: Adds a reaction from the current user to a specific ascent.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -347,7 +410,13 @@ router.get("/:ascentId/reactions", authenticateAccesJWT, async (req: Request, re
  *           type: string
  *     responses:
  *       200:
- *         description: Reakcja dodana
+ *         description: Reaction added
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Ascent not found
+ *       500:
+ *         description: Server error during reaction creation
  */
 router.post("/:ascentId/reactions", authenticateAccesJWT, async (req: Request, res: Response) => {
     const userId = (req.user as any).id;
@@ -376,7 +445,8 @@ router.post("/:ascentId/reactions", authenticateAccesJWT, async (req: Request, r
  *   delete:
  *     tags:
  *       - Reactions
- *     summary: Usuń swoją reakcję z przejścia
+ *     summary: Remove a reaction from an ascent
+ *     description: Removes the current user's reaction from a specific ascent.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -387,7 +457,13 @@ router.post("/:ascentId/reactions", authenticateAccesJWT, async (req: Request, r
  *           type: string
  *     responses:
  *       200:
- *         description: Reakcja usunięta
+ *         description: Reaction removed
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Reaction not found
+ *       500:
+ *         description: Server error during reaction removal
  */
 router.delete("/:ascentId/reactions", authenticateAccesJWT, async (req: Request, res: Response) => {
     const userId = (req.user as any).id;
