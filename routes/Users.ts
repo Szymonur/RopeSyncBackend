@@ -512,9 +512,9 @@ router.get("/:userId/stats", authenticateAccesJWT, async (req: Request, res: Res
                     ORDER BY count_per_grade DESC, wycena DESC 	
                 ) sub_grades
             ),
-            last_8_weeks AS (
+            last_12_weeks AS (
                 SELECT generate_series(
-                    DATE_TRUNC('week', CURRENT_DATE - INTERVAL '7 weeks'),
+                    DATE_TRUNC('week', CURRENT_DATE - INTERVAL '11 weeks'),
                     DATE_TRUNC('week', CURRENT_DATE),
                     '1 week'::interval
                 )::DATE AS week_start
@@ -524,13 +524,13 @@ router.get("/:userId/stats", authenticateAccesJWT, async (req: Request, res: Res
                     COALESCE(
                         jsonb_agg(
                             jsonb_build_object(
-                                'label', TO_CHAR(l8w.week_start, 'YYYY-MM-DD'), 
+                                'label', TO_CHAR(l12w.week_start, 'YYYY-MM-DD'), 
                                 'count', COALESCE(user_counts.count_per_week, 0)
-                            ) ORDER BY l8w.week_start ASC
+                            ) ORDER BY l12w.week_start ASC
                         ), 
                         '[]'::jsonb
                     ) AS chart_data
-                FROM last_8_weeks l8w
+                FROM last_12_weeks l12w
                 LEFT JOIN (
                     SELECT 
                         DATE_TRUNC('week', data)::DATE AS week_start, 
@@ -538,7 +538,7 @@ router.get("/:userId/stats", authenticateAccesJWT, async (req: Request, res: Res
                     FROM user_ascents 
                     WHERE data >= DATE_TRUNC('week', CURRENT_DATE - INTERVAL '7 weeks')
                     GROUP BY DATE_TRUNC('week', data)::DATE
-                ) user_counts ON l8w.week_start = user_counts.week_start
+                ) user_counts ON l12w.week_start = user_counts.week_start
             )
             SELECT json_build_object(
                 'totalCount', COALESCE((SELECT total_count FROM counts), 0),
