@@ -200,7 +200,7 @@ router.get("/me/feed", authenticateAccesJWT, async (req: Request, res: Response)
             `SELECT
             p.id_przejscia,
             p.notatka,
-            p.data,
+            p.data::TEXT,
             p.nazwa_stylu,
             d.id_drogi,
             d.nazwa_drogi,
@@ -547,17 +547,17 @@ router.get("/:userId/stats", authenticateAccesJWT, async (req: Request, res: Res
                 'boulderCount', COALESCE((SELECT boulder_count FROM counts), 0),
                 
                 'bestSport', (SELECT jsonb_build_object(
-                    'id_przejscia', bs.id_przejscia, 'data', bs.data, 'nazwa_stylu', bs.nazwa_stylu,
+                    'id_przejscia', bs.id_przejscia, 'data', bs.data::TEXT, 'nazwa_stylu', bs.nazwa_stylu,
                     'id_drogi', bs.id_drogi, 'nazwa_drogi', bs.nazwa_drogi, 'wycena', bs.wycena, 'typ_drogi', bs.typ_drogi
                 ) FROM best_sport bs),
                 
                 'bestTrad', (SELECT jsonb_build_object(
-                    'id_przejscia', bt.id_przejscia, 'data', bt.data, 'nazwa_stylu', bt.nazwa_stylu,
+                    'id_przejscia', bt.id_przejscia, 'data', bt.data::TEXT, 'nazwa_stylu', bt.nazwa_stylu,
                     'id_drogi', bt.id_drogi, 'nazwa_drogi', bt.nazwa_drogi, 'wycena', bt.wycena, 'typ_drogi', bt.typ_drogi
                 ) FROM best_trad bt),
                 
                 'bestBoulder', (SELECT jsonb_build_object(
-                    'id_przejscia', bb.id_przejscia, 'data', bb.data, 'nazwa_stylu', bb.nazwa_stylu,
+                    'id_przejscia', bb.id_przejscia, 'data', bb.data::TEXT, 'nazwa_stylu', bb.nazwa_stylu,
                     'id_drogi', bb.id_drogi, 'nazwa_drogi', bb.nazwa_drogi, 'wycena', bb.wycena, 'typ_drogi', bb.typ_drogi
                 ) FROM best_boulder bb),
 

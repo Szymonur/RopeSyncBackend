@@ -16,7 +16,7 @@ router.post("/sync-diff", authenticateAccesJWT, async (req: Request, res: Respon
 		const result = await query(
 			`SELECT
 			p.id_przejscia,
-			p.data,
+			p.data::TEXT,
 			p.timeline_data,
 			p.notatka,
 			p.id_uzytkownika,
@@ -122,7 +122,7 @@ router.get("/", authenticateAccesJWT, async (req: Request, res: Response) => {
 		const result = await query(
 			`SELECT
 			p.id_przejscia,
-			p.data,
+			p.data::TEXT,
 			p.timeline_data,
 			p.notatka,
 			p.id_uzytkownika,
@@ -329,7 +329,7 @@ router.get("/:ascentId", authenticateAccesJWT, async (req: Request, res: Respons
         const result = await query(
             `SELECT 
                 p.id_przejscia, 
-                p.data, 
+                p.data::TEXT, 
                 p.notatka, 
                 p.timeline_data, 
                 p.id_uzytkownika, 
