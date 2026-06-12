@@ -536,7 +536,7 @@ router.get("/:userId/stats", authenticateAccesJWT, async (req: Request, res: Res
                         DATE_TRUNC('week', data)::DATE AS week_start, 
                         COUNT(*)::INT AS count_per_week 
                     FROM user_ascents 
-                    WHERE data >= DATE_TRUNC('week', CURRENT_DATE - INTERVAL '7 weeks')
+                    WHERE data >= DATE_TRUNC('week', CURRENT_DATE - INTERVAL '11 weeks')
                     GROUP BY DATE_TRUNC('week', data)::DATE
                 ) user_counts ON l12w.week_start = user_counts.week_start
             )
