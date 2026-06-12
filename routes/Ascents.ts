@@ -6,6 +6,87 @@ const router = express.Router();
 
 const isIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
 
+// TODO - dokumnetacja 
+router.post("/sync-diff", authenticateAccesJWT, async (req: Request, res: Response) => {	
+   try {
+		const userId = (req.user as any).id;
+		const { ascentsUUID }  = req.body;
+		// console.error("ascentsUUID", ascentsUUID);
+		
+		const result = await query(
+			`SELECT
+			p.id_przejscia,
+			p.data,
+			p.timeline_data,
+			p.notatka,
+			p.id_uzytkownika,
+			p.nazwa_stylu,
+			d.id_drogi,
+			d.nazwa_drogi,
+			d.typ_drogi,
+			u.imie,
+			u.nazwisko,
+			u.login as username,
+			COALESCE(ds.skala_linowa, dt.skala_linowa, db.skala_boulderowa) AS wycena
+			FROM przejscia p
+			JOIN drogi d ON d.id_drogi = p.id_drogi 
+			JOIN uzytkownicy u on p.id_uzytkownika = u.id_uzytkownika
+			LEFT JOIN Drogi_sportowe_szczegoly ds ON ds.id_drogi = d.id_drogi AND d.typ_drogi = 'sportowa'
+			LEFT JOIN Trady_szczegoly dt ON dt.id_drogi = d.id_drogi AND d.typ_drogi = 'trad'
+			LEFT JOIN Bouldery_szczegoly db ON db.id_drogi = d.id_drogi AND d.typ_drogi = 'boulder'
+			WHERE p.id_uzytkownika = $1
+			AND id_przejscia != ALL($2)
+			ORDER BY d.nazwa_drogi ASC;`, [userId, ascentsUUID]
+       );
+       return res.json({
+           message: "Pobrano niezsynchronizowane przejscia",
+           ascents: result.rows,
+       });
+   } catch (error) {
+       console.error("List unsync ascents error:", error);
+       return res
+           .status(500)
+           .json({ message: "Błąd serwera podczas pobierania niezsynchronizowanych przejść" });
+   }
+});
+
+/**
+ * @openapi
+ * /ascents/count:
+ *   get:
+ *     tags:
+ *       - Ascents
+ *     summary: Get ascents count
+ *     description: Returns the number of ascents for current user.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Ascents count and user status
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error during ascents count
+ */
+router.get("/count", authenticateAccesJWT, async (req: Request, res: Response) => {	
+    const userId = (req.user as any).id;	
+    try {
+        const countResult = await query(
+            "SELECT COUNT(*) as count FROM przejscia WHERE id_uzytkownika = $1;",
+            [userId],
+        );
+        return res.json({
+            count: parseInt(countResult.rows[0].count)
+        });
+    } catch (error) {
+        console.error("Get reactions error:", error);
+        return res
+            .status(500)
+            .json({ message: "Błąd serwera podczas pobierania liczby przejść" });
+    }
+});
+
+
 /**
  * @openapi
  * /ascents:
@@ -483,5 +564,7 @@ router.delete("/:ascentId/reactions", authenticateAccesJWT, async (req: Request,
         return res.status(500).json({ message: "Błąd serwera podczas usuwania reakcji" });
     }
 });
+
+
 
 export default router;
