@@ -21,13 +21,17 @@ DROP TABLE IF EXISTS Rejony CASCADE;
 CREATE TABLE Rejony (
     id_rejonu SERIAL PRIMARY KEY,
     nazwa_rejonu TEXT NOT NULL UNIQUE,
-    kraj TEXT
+    kraj TEXT,
+	szerokosc_geograficzna REAL CHECK (szerokosc_geograficzna BETWEEN -90 AND 90),
+    dlugosc_geograficzna REAL CHECK (dlugosc_geograficzna BETWEEN -180 AND 180)
 );
 
 CREATE TABLE Sektory (
     id_sektoru SERIAL PRIMARY KEY,
     nazwa_sektoru TEXT NOT NULL,
     id_rejonu INTEGER NOT NULL,
+	szerokosc_geograficzna REAL CHECK (szerokosc_geograficzna BETWEEN -90 AND 90),
+    dlugosc_geograficzna REAL CHECK (dlugosc_geograficzna BETWEEN -180 AND 180),
     UNIQUE (nazwa_sektoru, id_rejonu),
     FOREIGN KEY (id_rejonu) REFERENCES Rejony(id_rejonu) ON DELETE CASCADE
 );
@@ -138,7 +142,7 @@ CREATE TABLE Style_przejscia (
 CREATE TABLE Przejscia (
     id_przejscia TEXT PRIMARY KEY,
     data DATE DEFAULT CURRENT_DATE,
-    uri_timeline TEXT,
+    timeline_data JSONB,
     notatka TEXT,
     id_uzytkownika INTEGER NOT NULL,
     nazwa_stylu TEXT NOT NULL,
@@ -151,6 +155,8 @@ CREATE TABLE Przejscia (
 CREATE TABLE Reakcje (
     id_uzytkownika INTEGER NOT NULL,
     id_przejscia TEXT NOT NULL,
+    wyswietlono INTEGER DEFAULT 0,
+    utworzono TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id_uzytkownika, id_przejscia),
     FOREIGN KEY (id_uzytkownika) REFERENCES Uzytkownicy(id_uzytkownika) ON DELETE CASCADE,
     FOREIGN KEY (id_przejscia) REFERENCES Przejscia(id_przejscia) ON DELETE CASCADE
@@ -168,6 +174,18 @@ CREATE TABLE Pomiary_wyciagow (
     CHECK (koniec_pomiaru >= start_pomiaru),
     CHECK (max_wysokosc >= min_wysokosc),
     FOREIGN KEY (id_przejscia) REFERENCES Przejscia(id_przejscia) ON DELETE CASCADE
+);
+
+CREATE TABLE Tokeny_resetu (
+    token TEXT PRIMARY KEY,
+    id_uzytkownika INT NOT NULL,
+    utworzono TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    wygasa TIMESTAMP NOT NULL,
+    
+    CONSTRAINT fk_uzytkownik 
+        FOREIGN KEY (id_uzytkownika) 
+        REFERENCES Uzytkownicy(id_uzytkownika) 
+        ON DELETE CASCADE
 );
 
 CREATE INDEX idx_sektory_rejon ON Sektory(id_rejonu);
